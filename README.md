@@ -23,5 +23,5 @@ DHT22 on gpio pin 4:
   no checksum error
   
 At the moment the driver is in a early alpha stage.
-the DHT22 is wired fixed(hardcoded in the source) to GPIO Pin 4.
+The DHT22 is wired fixed(hardcoded in the source) to GPIO Pin 4.
  
