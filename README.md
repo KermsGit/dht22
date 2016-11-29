@@ -12,10 +12,14 @@ Do a "make" and a "insmod dht22.ko" in the dmesg you should see:
 A cat "/proc/dht22/gpio04"
 
 root@pixel:~/Source/kernel/dht22# cat /proc/dht22/gpio04
+
 DHT22 on gpio pin 4:
+
   temperature = 21.1° C
   humidity = 43.1% RH
+  
   timestamp = 398
+  
   no checksum error
   
 At the moment the driver is in a early alpha stage.
