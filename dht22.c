@@ -17,7 +17,7 @@
 #define PROC_DIR_NAME  "dht22"
 #define PROC_FILE_NAME "gpio%02d"
  
-// we want GPIO_17 (pin 11 on P5 pinout raspberry pi rev. 2 board)
+// we want GPIO pin 4
 // to generate interrupt
 #define GPIO_ANY_GPIO                	4
  
