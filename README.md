@@ -18,5 +18,6 @@ DHT22 on gpio pin 4:
   timestamp = 398
   no checksum error
   
- At the moment it is a early alpha stage, an the DHT22 is wired fixed(hardcoded) to GPIO Pin 4.
+At the moment the driver is in a early alpha stage.
+the DHT22 is wired fixed(hardcoded in the source) to GPIO Pin 4.
  
