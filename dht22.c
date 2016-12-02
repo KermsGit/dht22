@@ -159,11 +159,11 @@ void print_humidity(void){
 void send_start_bit(void){
    ktime_t new_timestamp;
 
-   printk("Set start bit!\n");
-
    new_timestamp = ktime_get();
    // read only every 2000 ms
    if((ktime_to_ms(new_timestamp)-ktime_to_ms(read_timestamp)) >= 2000) {
+      printk("Set start bit!\n");
+
       read_timestamp = new_timestamp;
       counted_edges = 0;
       memset(&timestamps[0], 0, sizeof(timestamps));
