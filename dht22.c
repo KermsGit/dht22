@@ -129,16 +129,28 @@ void make_bytes(void) {
    chksum_ok = (checksum == chk);	   
 }
 
-void print_temperature(void){
-   int h = bytes[2]*256 + bytes[3];
+int get_temperatur(void){
+   int t = (bytes[2] & 0x7F)*256 + bytes[3];
+   if (bytes[2] & 0x80){
+      t = -t;
+   }
+   return t;
+}
 
-   printk("temperature = %d.%1d° C\n", h/10, h%2);
+void print_temperature(void){
+   int t = get_temperatur();
+   printk("temperature = %d.%1d° C\n", t/10, t%10);
+}
+
+int get_humidity(void){
+   int h = bytes[0]*256 + bytes[1];
+   return h;
 }
 
 void print_humidity(void){
-   int h = bytes[0]*256 + bytes[1];
+   int h = get__humidity();
 
-   printk("humidity = %d.%1d%% RH\n", h/10, h%2);
+   printk("humidity = %d.%1d%% RH\n", h/10, h%10);
 }
 
 /****************************************************************************/
@@ -155,11 +167,10 @@ void send_start_bit(void){
       read_timestamp = new_timestamp;
       counted_edges = 0;
       memset(&timestamps[0], 0, sizeof(timestamps));
-
+      
+      // set GPIO 
       gpio_direction_output(GPIO_ANY_GPIO,0);
-      //__raw_writel(1 << GPIO_ANY_GPIO, gpio_cleardataout_addr);
       mdelay(2);
-      //__raw_writel(1 << GPIO_ANY_GPIO, gpio_setdataout_addr);
       gpio_direction_output(GPIO_ANY_GPIO,1);
       udelay(20);
       gpio_direction_input(GPIO_ANY_GPIO);
@@ -224,10 +235,10 @@ static int proc_show(struct seq_file *m, void *v) {
    // Read sensor
    send_start_bit();
    make_bytes();
+
    tv = ktime_to_timeval(read_timestamp);
-   
-   t = bytes[2]*256 + bytes[3];
-   h = bytes[0]*256 + bytes[1];
+   t = get_temperatur();
+   h = get__humidity();
    
    seq_printf(m, "DHT22 on gpio pin %d:", GPIO_ANY_GPIO);
    seq_printf(m, "\n");
