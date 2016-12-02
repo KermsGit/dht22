@@ -148,7 +148,7 @@ int get_humidity(void){
 }
 
 void print_humidity(void){
-   int h = get__humidity();
+   int h = get_humidity();
 
    printk("humidity = %d.%1d%% RH\n", h/10, h%10);
 }
@@ -238,7 +238,7 @@ static int proc_show(struct seq_file *m, void *v) {
 
    tv = ktime_to_timeval(read_timestamp);
    t = get_temperatur();
-   h = get__humidity();
+   h = get_humidity();
    
    seq_printf(m, "DHT22 on gpio pin %d:", GPIO_ANY_GPIO);
    seq_printf(m, "\n");
