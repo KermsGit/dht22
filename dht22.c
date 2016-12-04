@@ -9,6 +9,8 @@
 #include <linux/gpio.h>
 #include <linux/delay.h>
 
+#include <linux/iio/iio.h>
+
 /****************************************************************************/
 /* Defines                                                                  */
 /****************************************************************************/
@@ -39,14 +41,21 @@
 /****************************************************************************/
 /* Interrupts variables block                                               */
 /****************************************************************************/
-short int irq_any_gpio    = 0;
-short int counted_edges   = 0;
 
-ktime_t timestamps[MAX_TIMESTAMPS];
-ktime_t read_timestamp; //    = ktime_set(0L, 0L);
-u8      bytes[4];
-u8      checksum;
-bool    chksum_ok         = true;
+struct dht22 {
+   struct device    *dev
+   struct mutex	    lock;
+   short int        irq_any_gpio = 0;
+   short int        counted_edges = 0;            
+   ktime_t          timestamps[MAX_TIMESTAMPS];
+   ktime_t          read_timestamp; //    = ktime_set(0L, 0L);
+   u8               bytes[4];
+   u8               checksum;
+   bool             chksum_ok = true;
+   int              temperature = 0;
+   int              humidity = 0;
+   int              
+};
  
 /****************************************************************************/
 /* IRQ handler - fired on interrupt                                         */
@@ -129,7 +138,7 @@ void make_bytes(void) {
    chksum_ok = (checksum == chk);	   
 }
 
-int get_temperatur(void){
+int get_temperature(void){
    int t = (bytes[2] & 0x7F)*256 + bytes[3];
    if (bytes[2] & 0x80){
       t = -t;
@@ -138,7 +147,7 @@ int get_temperatur(void){
 }
 
 void print_temperature(void){
-   int t = get_temperatur();
+   int t = get_temperature();
    printk("temperature = %d.%1d° C\n", t/10, t%10);
 }
 
