@@ -43,19 +43,19 @@
 /****************************************************************************/
 
 struct dht22 {
-   struct device    *dev
+   struct device    *dev;
    struct mutex	    lock;
-   short int        irq_any_gpio = 0;
-   short int        counted_edges = 0;            
+   short int        irq_any_gpio;
+   short int        counted_edges;            
    ktime_t          timestamps[MAX_TIMESTAMPS];
-   ktime_t          read_timestamp; //    = ktime_set(0L, 0L);
+   ktime_t          read_timestamp;
    u8               bytes[4];
    u8               checksum;
-   bool             chksum_ok = true;
-   int              temperature = 0;
-   int              humidity = 0;
-   int              
-};
+   bool             chksum_ok;
+   int              temperature;
+   int              humidity;
+} dht22;
+
  
 /****************************************************************************/
 /* IRQ handler - fired on interrupt                                         */
@@ -75,8 +75,8 @@ static irqreturn_t r_irq_handler(int irq, void *dev_id, struct pt_regs *regs) {
    // hardware.coder:
    // http://stackoverflow.com/questions/8738951/printk-inside-an-interrupt-handler-is-it-really-that-bad
  
-   if(counted_edges >= 0 && counted_edges < MAX_TIMESTAMPS) {
-      timestamps[counted_edges++] = ktime_get();
+   if(dht22.counted_edges >= 0 && dht22.counted_edges < MAX_TIMESTAMPS) {
+      dht22.timestamps[dht22.counted_edges++] = ktime_get();
       }
    // printk(KERN_NOTICE "DHT22 trigger %d times!.\n", count_edge);
  
@@ -84,7 +84,7 @@ static irqreturn_t r_irq_handler(int irq, void *dev_id, struct pt_regs *regs) {
    local_irq_restore(flags);
  
    return IRQ_HANDLED;
-   }
+}
 
 /****************************************************************************/
 /* Debug and convert funktions                                              */
@@ -92,15 +92,15 @@ static irqreturn_t r_irq_handler(int irq, void *dev_id, struct pt_regs *regs) {
 void print_timestamps(void) {
    short int i;
 
-   printk("Counted falling edges = %d\n", counted_edges);
+   printk("Counted falling edges = %d\n", dht22.counted_edges);
    for(i = 0; i < MAX_TIMESTAMPS; i++) {
-      printk("Timestamp[%02d] %lld\n", i, ktime_to_ns(timestamps[i]));
+      printk("Timestamp[%02d] %lld\n", i, ktime_to_ns(dht22.timestamps[i]));
    }
 }
 
 int get_time_diff(short int i) {
    // get T HIGH time in us
-   return(ktime_to_us(timestamps[i]) - ktime_to_us(timestamps[i-1]));
+   return(ktime_to_us(dht22.timestamps[i]) - ktime_to_us(dht22.timestamps[i-1]));
 }
 
 void print_timediffs(void) {
@@ -113,34 +113,34 @@ void print_timediffs(void) {
 
 void print_bytes(void) {
    short int i;
-   printk("Counted falling edges = %d\n", counted_edges);
+   printk("Counted falling edges = %d\n", dht22.counted_edges);
    for(i=0; i < 4; i++) {
-      printk("bytes[%d] = %02x\n", i, bytes[i]);
+      printk("bytes[%d] = %02x\n", i, dht22.bytes[i]);
    }
-   printk("checksum = %02x\n", checksum);
-   printk("chksum_ok = %d\n", chksum_ok);
+   printk("checksum = %02x\n", dht22.checksum);
+   printk("chksum_ok = %d\n", dht22.chksum_ok);
 }
 
 void make_bytes(void) {
    u8 chk = 0;
 
-   bytes[0] = (MAKE_BIT(7)       | (MAKE_BIT(6) << 1) | (MAKE_BIT(5) << 2) | (MAKE_BIT(4)  << 3) |
-              (MAKE_BIT(3)  << 4)| (MAKE_BIT(2) << 5) | (MAKE_BIT(1) << 6) | (MAKE_BIT(0)  << 7));
-   bytes[1] = (MAKE_BIT(15)      | (MAKE_BIT(14) << 1)| (MAKE_BIT(13) << 2)| (MAKE_BIT(12) << 3) |
-              (MAKE_BIT(11) << 4)| (MAKE_BIT(10) << 5)| (MAKE_BIT(9) << 6) | (MAKE_BIT(8)  << 7));
-   bytes[2] = (MAKE_BIT(23)      | (MAKE_BIT(22) << 1)| (MAKE_BIT(21) << 2)| (MAKE_BIT(20) << 3) |
-              (MAKE_BIT(19) << 4)| (MAKE_BIT(18) << 5)| (MAKE_BIT(17) << 6)| (MAKE_BIT(16) << 7));
-   bytes[3] = (MAKE_BIT(31)      | (MAKE_BIT(30) << 1)| (MAKE_BIT(29) << 2)| (MAKE_BIT(28) << 3) |
-              (MAKE_BIT(27) << 4)| (MAKE_BIT(26) << 5)| (MAKE_BIT(25) << 6)| (MAKE_BIT(24) << 7));
-   checksum = (MAKE_BIT(39)      | (MAKE_BIT(38) << 1)| (MAKE_BIT(37) << 2)| (MAKE_BIT(36) << 3) |
-              (MAKE_BIT(35) << 4) |(MAKE_BIT(34) << 5)| (MAKE_BIT(33) << 6) |(MAKE_BIT(32) << 7));
-   chk = bytes[0] + bytes[1] + bytes[2] +  bytes[3];
-   chksum_ok = (checksum == chk);	   
+   dht22.bytes[0] = (MAKE_BIT(7)       | (MAKE_BIT(6) << 1) | (MAKE_BIT(5) << 2) | (MAKE_BIT(4)  << 3) |
+                    (MAKE_BIT(3)  << 4)| (MAKE_BIT(2) << 5) | (MAKE_BIT(1) << 6) | (MAKE_BIT(0)  << 7));
+   dht22.bytes[1] = (MAKE_BIT(15)      | (MAKE_BIT(14) << 1)| (MAKE_BIT(13) << 2)| (MAKE_BIT(12) << 3) |
+                    (MAKE_BIT(11) << 4)| (MAKE_BIT(10) << 5)| (MAKE_BIT(9) << 6) | (MAKE_BIT(8)  << 7));
+   dht22.bytes[2] = (MAKE_BIT(23)      | (MAKE_BIT(22) << 1)| (MAKE_BIT(21) << 2)| (MAKE_BIT(20) << 3) |
+                    (MAKE_BIT(19) << 4)| (MAKE_BIT(18) << 5)| (MAKE_BIT(17) << 6)| (MAKE_BIT(16) << 7));
+   dht22.bytes[3] = (MAKE_BIT(31)      | (MAKE_BIT(30) << 1)| (MAKE_BIT(29) << 2)| (MAKE_BIT(28) << 3) |
+                    (MAKE_BIT(27) << 4)| (MAKE_BIT(26) << 5)| (MAKE_BIT(25) << 6)| (MAKE_BIT(24) << 7));
+   dht22.checksum = (MAKE_BIT(39)      | (MAKE_BIT(38) << 1)| (MAKE_BIT(37) << 2)| (MAKE_BIT(36) << 3) |
+                    (MAKE_BIT(35) << 4) |(MAKE_BIT(34) << 5)| (MAKE_BIT(33) << 6) |(MAKE_BIT(32) << 7));
+   chk = dht22.bytes[0] + dht22.bytes[1] + dht22.bytes[2] +  dht22.bytes[3];
+   dht22.chksum_ok = (dht22.checksum == chk);	   
 }
 
 int get_temperature(void){
-   int t = (bytes[2] & 0x7F)*256 + bytes[3];
-   if (bytes[2] & 0x80){
+   int t = (dht22.bytes[2] & 0x7F)*256 + dht22.bytes[3];
+   if (dht22.bytes[2] & 0x80){
       t = -t;
    }
    return t;
@@ -152,7 +152,7 @@ void print_temperature(void){
 }
 
 int get_humidity(void){
-   int h = bytes[0]*256 + bytes[1];
+   int h = dht22.bytes[0]*256 + dht22.bytes[1];
    return h;
 }
 
@@ -170,12 +170,12 @@ void send_start_bit(void){
 
    new_timestamp = ktime_get();
    // read only every 2000 ms
-   if((ktime_to_ms(new_timestamp)-ktime_to_ms(read_timestamp)) >= 2000) {
+   if((ktime_to_ms(new_timestamp)-ktime_to_ms(dht22.read_timestamp)) >= 2000) {
       printk("Set start bit!\n");
 
-      read_timestamp = new_timestamp;
-      counted_edges = 0;
-      memset(&timestamps[0], 0, sizeof(timestamps));
+      dht22.read_timestamp = new_timestamp;
+      dht22.counted_edges = 0;
+      memset(&(dht22.timestamps[0]), 0, sizeof(dht22.timestamps));
       
       // set GPIO 
       gpio_direction_output(GPIO_ANY_GPIO,0);
@@ -190,21 +190,21 @@ void send_start_bit(void){
 /****************************************************************************/
 /* This function configures interrupts.                                     */
 /****************************************************************************/
-void r_int_config(void) {
+void setup_dht22(void) {
    
    if (gpio_request(GPIO_ANY_GPIO, GPIO_ANY_GPIO_DESC)) {
       printk("GPIO request faiure: %s\n", GPIO_ANY_GPIO_DESC);
       return;
    }
  
-   if ( (irq_any_gpio = gpio_to_irq(GPIO_ANY_GPIO)) < 0 ) {
+   if ( (dht22.irq_any_gpio = gpio_to_irq(GPIO_ANY_GPIO)) < 0 ) {
       printk("GPIO to IRQ mapping faiure %s\n", GPIO_ANY_GPIO_DESC);
       return;
    }
  
-   printk(KERN_NOTICE "Mapped int %d\n", irq_any_gpio);
+   printk(KERN_NOTICE "Mapped int %d\n", dht22.irq_any_gpio);
  
-   if (request_irq(irq_any_gpio,
+   if (request_irq(dht22.irq_any_gpio,
                    (irq_handler_t ) r_irq_handler,
                    IRQF_TRIGGER_FALLING,
                    GPIO_ANY_GPIO_DESC,
@@ -228,7 +228,7 @@ void r_int_config(void) {
 /****************************************************************************/
 void r_int_release(void) {
  
-   free_irq(irq_any_gpio, GPIO_ANY_GPIO_DEVICE_DESC);
+   free_irq(dht22.irq_any_gpio, GPIO_ANY_GPIO_DEVICE_DESC);
    gpio_free(GPIO_ANY_GPIO);
 }
  
@@ -245,8 +245,8 @@ static int proc_show(struct seq_file *m, void *v) {
    send_start_bit();
    make_bytes();
 
-   tv = ktime_to_timeval(read_timestamp);
-   t = get_temperatur();
+   tv = ktime_to_timeval((dht22.read_timestamp));
+   t = get_temperature();
    h = get_humidity();
    
    seq_printf(m, "DHT22 on gpio pin %d:", GPIO_ANY_GPIO);
@@ -254,7 +254,7 @@ static int proc_show(struct seq_file *m, void *v) {
    seq_printf(m, "  temperature = %d.%1d° C\n", t/10, t%2);
    seq_printf(m, "  humidity = %d.%1d%% RH\n", h/10, h%2);
    seq_printf(m, "  timestamp = %ld\n", (long)tv.tv_sec);
-   seq_printf(m, chksum_ok ?  "  no checksum error\n" : "  checksum error !\n");
+   seq_printf(m, dht22.chksum_ok ?  "  no checksum error\n" : "  checksum error !\n");
    return 0;
 }
 
@@ -294,7 +294,7 @@ static void proc_cleanup(void) {
 int r_init(void) {
  
    printk(KERN_NOTICE "Hello DHT22!\n");
-   r_int_config();
+   setup_dht22();
    proc_init();
  
    return 0;
