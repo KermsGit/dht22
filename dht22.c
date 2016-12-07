@@ -1,3 +1,18 @@
+/*
+ * DHT22 gpio device driver 
+ * 
+ * Copyright (c) Ing. Gerhad Scheutz <gerhard.scheutz@gmx.at>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ */
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
@@ -68,7 +83,8 @@ static irqreturn_t r_irq_handler(int irq, void *dev_id, struct pt_regs *regs) {
    local_irq_save(flags);
  
    // NOTE:
-   // Anonymous Sep 17, 2013, 3:16:00 PM:
+   //
+
    // You are putting printk while interupt are disabled. printk can block.
    // It's not a good practice.
    // 
@@ -136,6 +152,15 @@ void make_bytes(void) {
                     (MAKE_BIT(35) << 4) |(MAKE_BIT(34) << 5)| (MAKE_BIT(33) << 6) |(MAKE_BIT(32) << 7));
    chk = dht22.bytes[0] + dht22.bytes[1] + dht22.bytes[2] +  dht22.bytes[3];
    dht22.chksum_ok = (dht22.checksum == chk);	   
+}
+
+bool check_measurement(void){
+    // got all edges
+    if(dht22.counted_edges != MAX_TIMESTAMPS){
+        return(false);
+    }
+    make_bytes();
+    return dht22.chksum_ok;
 }
 
 int get_temperature(void){
@@ -214,9 +239,15 @@ void setup_dht22(void) {
    }
    else {
       send_start_bit();
+      // Try again if it fails
+      if(!check_measurement()){
+         send_start_bit();
+      }
       print_timestamps();      
       print_timediffs();
-      make_bytes();
+      check_measurement()
+      print_timestamps();      
+      print_timediffs();
       print_bytes();
       print_humidity();
       print_temperature();
@@ -243,7 +274,10 @@ static int proc_show(struct seq_file *m, void *v) {
 
    // Read sensor
    send_start_bit();
-   make_bytes();
+   // Try again if it fails
+   if(!check_measurement()){
+      send_start_bit();
+   }
 
    tv = ktime_to_timeval((dht22.read_timestamp));
    t = get_temperature();
