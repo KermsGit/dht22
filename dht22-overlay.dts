@@ -1,0 +1,39 @@
+/*
+ * Overlay for the DHT22 humidity/temperature sensor modules.
+ */
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "brcm,bcm2708";
+
+	fragment@0 {
+		target-path = "/";
+		__overlay__ {
+
+			dht22: dht22@0 {
+				compatible = "dht22";
+				pinctrl-names = "default";
+				pinctrl-0 = <&dht22_pins>;
+				gpios = <&gpio 4 0>;
+				status = "okay";
+			};
+		};
+	};
+
+	fragment@1 {
+		target = <&gpio>;
+		__overlay__ {
+			dht22_pins: dht22_pins {
+				brcm,pins = <4>;
+				brcm,function = <0>; // in
+				brcm,pull = <0>; // off
+			};
+		};
+	};
+
+	__overrides__ {
+		gpiopin = <&dht22_pins>,"brcm,pins:0",
+			<&dht22>,"gpios:4";
+	};
+};

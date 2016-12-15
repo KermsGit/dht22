@@ -5,7 +5,10 @@ obj-m := ${MODULE}.o
  
 module_upload=${MODULE}.ko
  
-all:	clean compile
+all:	clean compile dht22-overlay.dtbo
+
+dht22-overlay.dtbo:
+	 dtc -I dts -O dtb -o dht22.dtbo dht22-overlay.dts
  
 compile:
 	make -C /lib/modules/$(shell uname -r)/build M=$(shell pwd) modules
@@ -19,3 +22,4 @@ clean:
  
 info:
 	modinfo  ${module_upload}
+
