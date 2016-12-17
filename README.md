@@ -6,7 +6,7 @@ See the specufication on http://www.electrodragon.com/w/AM2302
 Add the "bin/dht22.dtbo" to the "/boot/overlays/" directory and add a lines with
 
 ```
-"# Enable DHT22 sensor
+# Enable DHT22 sensor
 dtoverlay=dht22,gpiopin=4
 ```
 to the /boot/config.txt
