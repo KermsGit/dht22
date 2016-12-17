@@ -5,10 +5,10 @@ See the specufication on http://www.electrodragon.com/w/AM2302
 
 Add the "bin/dht22.dtbo" to the "/boot/overlays/" directory and add a lines with
 
-...
+```
 "# Enable DHT22 sensor
 dtoverlay=dht22,gpiopin=4
-...
+```
 to the /boot/config.txt
 
 Do a "make" and a "modprobe industrialio; insmod dht22.ko" in the dmesg you should see now:
@@ -33,8 +33,10 @@ DHT22 on gpio pin 4:
 
 To get the raw data you can read the values in the sys file system:
 
+```
  /sys/bus/iio/devices/iio\:device0/in_temp_input
  /sys/bus/iio/devices/iio\:device0/in_humidityrelative_input
+```
 
 It shows the sensor values as integers.
 
