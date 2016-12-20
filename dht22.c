@@ -44,6 +44,8 @@
 #define GPIO_ANY_GPIO                	4
 #define GPIO_ANY_GPIO_DESC           	"gpio pin used for DHT22"
 #define GPIO_ANY_GPIO_DEVICE_DESC    	"Read temperature and huminity"
+#define DHT22_CONST_SCALE				1
+#define DHT22_CONST_SCALE2				10
 
 #define MAX_TIMESTAMPS					43
 // T LOW is typical 50 us 
@@ -273,6 +275,7 @@ int setup_dht22(struct dht22_state *dht22_idev)
 	// Try again if it fails
 	if (!check_measurement()) {
 		send_start_bit();
+		check_measurement();
 	}
 	mutex_unlock(&dht22->lock);
 	
@@ -312,6 +315,7 @@ static int proc_show(struct seq_file *m, void *v)
 	// Try again if it fails
 	if (!check_measurement()) {
 		send_start_bit();
+		check_measurement();
 	}
 
 	tv = ktime_to_timeval((dht22->read_timestamp));
@@ -362,30 +366,65 @@ static void proc_cleanup(void)
 		remove_proc_entry(PROC_DIR_NAME, NULL);
 }
 
-static int read_raw(struct iio_dev *iio_dev,
-		    const struct iio_chan_spec *chan,
-		    int *val, int *val2, long m)
+static void read_sensor(struct dht22_state *dht22)
 {
-	struct dht22_state *dht22 = iio_priv(iio_dev);
-
 	mutex_lock(&dht22->lock);
     // Read sensor
 	send_start_bit();
 	// Try again if it fails
 	if (!check_measurement()) {
 		send_start_bit();
-	}
+		check_measurement();
+		}
 	mutex_unlock(&dht22->lock);
+}
 
-	if (chan->type == IIO_TEMP){
-		*val = get_temperature();
-		}
-	else if (chan->type == IIO_HUMIDITYRELATIVE){
-		*val = get_humidity();
-		}
-	else
-		return (-EINVAL);
-	return (IIO_VAL_INT);
+static int read_raw(struct iio_dev *iio_dev,
+		    const struct iio_chan_spec *chan,
+		    int *val, int *val2, long mask)
+{
+	struct dht22_state *dht22 = iio_priv(iio_dev);
+
+	switch(mask) {
+ 		case IIO_CHAN_INFO_RAW:
+    		// Read sensor
+			read_sensor(dht22);
+			if (chan->type == IIO_TEMP){
+				*val = get_temperature();
+				}
+			else if (chan->type == IIO_HUMIDITYRELATIVE){
+				*val = get_humidity();
+				}
+			else
+				return (-EINVAL);
+			return (IIO_VAL_INT);
+			break;
+
+ 		case IIO_CHAN_INFO_PROCESSED:
+    		// Read sensor
+			read_sensor(dht22);
+			*val2 = DHT22_CONST_SCALE2;
+			if (chan->type == IIO_TEMP){
+				*val = get_temperature() * DHT22_CONST_SCALE;
+				}
+			else if (chan->type == IIO_HUMIDITYRELATIVE){
+				*val = get_humidity() * DHT22_CONST_SCALE;
+				}
+			else
+				return (-EINVAL);
+			return (IIO_VAL_FRACTIONAL);
+			break;			
+
+		case IIO_CHAN_INFO_SCALE:
+            *val  = DHT22_CONST_SCALE;
+			*val2 = DHT22_CONST_SCALE2;
+			return(IIO_VAL_FRACTIONAL);
+			break;
+
+		default:
+		    dev_err(dht22->dev, "wrong mask %ld", mask);
+			return (-EINVAL);
+	}
 }
 
 /****************************************************************************/
@@ -398,9 +437,11 @@ static const struct iio_info dht22_iio_info = {
 
 static const struct iio_chan_spec dht22_chan_spec[] = {
 	{.type = IIO_TEMP,
-	 .info_mask_separate = BIT(IIO_CHAN_INFO_PROCESSED),},
+	 .info_mask_separate = BIT(IIO_CHAN_INFO_RAW) | BIT(IIO_CHAN_INFO_PROCESSED),
+	 .info_mask_shared_by_type = BIT(IIO_CHAN_INFO_SCALE),},
 	{.type = IIO_HUMIDITYRELATIVE,
-	 .info_mask_separate = BIT(IIO_CHAN_INFO_PROCESSED),}
+	 .info_mask_separate = BIT(IIO_CHAN_INFO_RAW) | BIT(IIO_CHAN_INFO_PROCESSED),
+	 .info_mask_shared_by_type = BIT(IIO_CHAN_INFO_SCALE),}
 };
 
 static const struct of_device_id dht22_dt_ids[] = {
