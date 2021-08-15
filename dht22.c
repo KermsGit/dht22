@@ -26,6 +26,7 @@
 #include <linux/gpio.h>
 #include <linux/of_gpio.h>
 #include <linux/delay.h>
+#include <linux/ktime.h>
 
 #include <linux/platform_device.h>
 #include <linux/iio/iio.h>
@@ -43,7 +44,7 @@
 // to generate interrupt
 #define GPIO_ANY_GPIO                	4
 #define GPIO_ANY_GPIO_DESC           	"gpio pin used for DHT22"
-#define GPIO_ANY_GPIO_DEVICE_DESC    	"Read temperature and huminity"
+#define GPIO_ANY_GPIO_DEVICE_DESC    	"Read temperature and humidity"
 #define DHT22_CONST_SCALE				1
 #define DHT22_CONST_SCALE2				10
 
@@ -308,7 +309,7 @@ static int proc_show(struct seq_file *m, void *v)
 {
 	short int h;
 	short int t;
-	struct timeval tv;
+	ktime_t tv;
 
 	// Read sensor
 	send_start_bit();
@@ -318,7 +319,7 @@ static int proc_show(struct seq_file *m, void *v)
 		check_measurement();
 	}
 
-	tv = ktime_to_timeval((dht22->read_timestamp));
+	tv = ktime_get();
 	t = get_temperature();
 	h = get_humidity();
 
@@ -326,7 +327,7 @@ static int proc_show(struct seq_file *m, void *v)
 	seq_printf(m, "\n");
 	seq_printf(m, "  temperature = %d.%1d° C\n", t / 10, t % 10);
 	seq_printf(m, "  humidity = %d.%1d%% RH\n", h / 10, h % 10);
-	seq_printf(m, "  timestamp = %ld\n", (long)tv.tv_sec);
+	seq_printf(m, "timestamp = %lli", tv);
 	seq_printf(m, dht22-> chksum_ok ? "  no checksum error\n" : "  checksum error !\n");
 	return 0;
 }
@@ -338,12 +339,11 @@ static int proc_open(struct inode *inode, struct file *file)
 }
 
 static struct proc_dir_entry *proc_dir, *proc_file;
-static const struct file_operations proc_fileops = {
-	.owner = THIS_MODULE,
-	.open = proc_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = single_release,
+static const struct proc_ops proc_fileops = {
+	.proc_open = proc_open,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = single_release,
 };
 
 static void proc_init(void)
@@ -431,7 +431,6 @@ static int read_raw(struct iio_dev *iio_dev,
 /* iio_dev variables block                                               */
 /****************************************************************************/
 static const struct iio_info dht22_iio_info = {
-	.driver_module = THIS_MODULE,
 	.read_raw = read_raw,
 };
 
@@ -513,7 +512,7 @@ static int probe_dht22(struct platform_device *pdev)
  free_iio_gpio:
 	devm_gpio_free(dev, dht22_idev->gpio);
  free_iio_device:
-	devm_iio_device_free(dev, iio);
+	devm_iio_device_alloc(dev, iio);
 	return (ret);
 }
 

@@ -45,3 +45,17 @@ Do not forget to make a "depmod -a".
 
 At the moment the driver is in a early beta stage.
 But you should not get read errors.
+
+
+## Install using make
+Clone repo
+cd to repo directory
+run ```make```
+run ```make install``` to place the necessary files in the kernel modules directory and /boot/overlays
+reboot
+
+You can verify that it is working correctly by running this command, which should show similar output
+```
+# cat /sys/devices/platform/dht22\@0/iio\:device0/in_humidityrelative_input 
+59.400000000
+```
